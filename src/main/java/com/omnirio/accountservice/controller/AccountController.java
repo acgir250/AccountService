@@ -26,24 +26,24 @@ public class AccountController {
 	@PostMapping("/accounts")
 	public ResponseEntity<?> saveUser(@RequestBody Account account) throws JsonMappingException, JsonProcessingException {
 		service.saveAccount(account);
-		return null;
+		return ResponseEntity.created(null).build();
 	}
 
 	@GetMapping("/accounts")
-	public ResponseEntity<?> getAccounts(@RequestBody Account user) {
+	public ResponseEntity<?> getAccounts() {
 		return ResponseEntity.ok(service.getAllAccount());
 	}
 
 	@GetMapping("/accounts/{id}")
 	public ResponseEntity<?> getAccountById(@PathVariable("id")long id) {
-
-		return ResponseEntity.ok(service.getAccountById(id));
+		Account fef= service.getAccountById(id).orElse(null);
+		return ResponseEntity.ok(fef);
 	}
 
 	@PutMapping("/accounts/{id}")
 	public ResponseEntity<?> updateAccount(@RequestBody Account user, @PathVariable("id") long id) {
-
-		return null;
+		service.updateAccount(user, id);
+		return ResponseEntity.created(null).build();
 	}
 
 	@DeleteMapping("/accounts/{id}")

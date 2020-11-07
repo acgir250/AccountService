@@ -8,7 +8,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "users")
+@Table(name = "account")
 public class Account {
 
 	@Id
@@ -30,7 +30,7 @@ public class Account {
 	@Column(name = "branch", nullable = false)
 	private String branch;
 
-	@Column(name = "minor_indicator", length = 2, nullable = false)
+	@Column(name = "minor_indicator", length = 2)
 	private String minorIndicator;
 
 	public long getAccountId() {

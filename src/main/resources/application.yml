@@ -1,5 +1,5 @@
 base:
-  url: http://localhost:9095/api/userservice
+  url: http://user-service/api/userservice
   
 spring:
   datasource:
@@ -26,6 +26,7 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8181/eureka/
+      
 ---
 spring:
   profiles: heroku

@@ -1,5 +1,8 @@
 package com.omnirio.accountservice.service;
 
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -7,10 +10,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -30,26 +30,58 @@ public class AccountService {
 	@Value("${base.url}")
 	private String baseUrl;
 
+	@Autowired
+	private WebClient.Builder webClientBuilder;
+
 	@SuppressWarnings("unchecked")
 	public Account saveAccount(Account account) throws JsonMappingException, JsonProcessingException {
-		WebClient client = WebClient.builder().baseUrl(baseUrl)
-				.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).build();
-		String response = client.get().uri("/users/" + account.getCustomerName() + "/username").retrieve()
-				.bodyToMono(String.class).block();
+		String response = webClientBuilder.build().get()
+				.uri(baseUrl + "/users/" + account.getCustomerName() + "/username").retrieve().bodyToMono(String.class)
+				.block();
 		ObjectMapper mapper = new ObjectMapper();
-		Map<String, String> res = mapper.readValue(response, Map.class);
-		if (res.get("userId") != null) {
-			long customerId = Long.valueOf(res.get("userId") != null ? res.get("userId") : "0");
+		if (response != null) {
+			Map<String, Object> res = mapper.readValue(response, Map.class);
+			int customerId = (int) res.get("userId");
 			account.setCustomerId(customerId);
-
+			if(res.get("dateOfBirth")!=null)
+			{
+				String dob = res.get("dateOfBirth").toString();
+				DateTimeFormatter format = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+				LocalDate date = LocalDate.parse(dob, format);
+				Period period = Period.between(date, LocalDate.now());
+				if (period.getYears() > 18) {
+					account.setMinorIndicator("Y");
+				} else {
+					account.setMinorIndicator("N");
+				}	
+			}
+			
 		} else {
 			Map<String, String> customerObj = new HashMap<>();
-			customerObj.put("userName",account.getCustomerName());
-			customerObj.put("roleName","Customer");
-			Mono<ClientResponse> postResult =client.post().uri("/users").body(Mono.just(customerObj),Map.class).exchange();
-			postResult.block();
-		}
+			customerObj.put("userName", account.getCustomerName());
+			customerObj.put("roleName", "Customer");
+			customerObj.put("gender", "M");
+			Map<String,Object> jsonMap;
+			String postResult = webClientBuilder.build().post().uri(baseUrl + "/users")
+					.body(Mono.just(customerObj), Map.class).retrieve().bodyToMono(String.class).block();
+			String rest = webClientBuilder.build().get()
+					.uri(baseUrl + "/users/" + account.getCustomerName() + "/username").retrieve()
+					.bodyToMono(String.class).block();
+			ObjectMapper jsonMapper = new ObjectMapper();
 
+			if(rest!=null)
+			{
+				try {
+					jsonMap = jsonMapper.readValue(rest, Map.class);
+					account.setCustomerId((int)jsonMap.get("userId"));
+				} catch (JsonProcessingException e) {
+				e.printStackTrace();
+				}
+			}
+		
+			
+		}
+		
 		return accountRepo.save(account);
 	}
 
